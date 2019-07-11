@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/tzafrirben/go-adstxt-crawler/adstxt"
+	"github.com/ehulsbosch/go-adstxt-crawler"
 )
 
 func main() {

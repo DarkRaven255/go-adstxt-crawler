@@ -21,12 +21,19 @@ const (
 	errFailToParseRedirect       = "[%s] failed to parse root domain from HTTP redirect response header. Ads.txt URL [%s] redirect [%s] error [%s]"
 	errRedirctToInvalidAdsTxt    = "[%s] failed to get Ads.txt file, redirect from [%s] to invalid Ads.txt URL [%s]"
 	errRedirectToDifferentDomain = "Only single redirect out of original root domain scope [%s] is allowed. Additional redirect from [%s] to [%s] is forbidden"
+	errInfiniteRedirect          = "Reached the maximum number of allowed redirects while trying to redirect from [%s]: [%s]"
+	errRedirectSameDomain        = "Error on redirect: [%s] is redirecting to the same page. Redirecting from [%s] to [%s]"
 )
 
 // HTTP crawler settings
 const (
-	userAgent      = "+https://github.com/tzafrirben/go-adstxt-crawler"
-	requestTimeout = 30
+	userAgent       = "+https://github.com/ehulsbosch/go-adstxt-crawler"
+	requestTimeout  = 30
+	maxNumRedirects = 10
+)
+
+var (
+	redirects = make(map[string]int)
 )
 
 // crawler provide methods for downloading Ads.txt files from remote host
@@ -76,6 +83,19 @@ func (c *crawler) sendRequest(req *Request) (*http.Response, error) {
 // handle HTTP redirect resonse: parse new redirect destination from HTTP response header
 func (c *crawler) handleRedirect(req *Request, res *http.Response) (string, error) {
 	redirect := res.Header.Get("Location")
+
+	// Returning error when redirect is happening to the same location
+	if redirect == req.URL {
+		return "", fmt.Errorf(errRedirectSameDomain, req.Domain, req.URL, redirect)
+	}
+
+	// Increasing the number of redirects for the same url
+	redirects[redirect] += 1
+
+	// Return error when the number of redirects for a single url are reaching a max
+	if redirects[redirect] > maxNumRedirects {
+		return "", fmt.Errorf(errInfiniteRedirect, req.Domain, req.URL, redirect)
+	}
 
 	log.Printf("[%s]: redirect from [%s] to [%s]", res.Status, req.URL, redirect)
 
