@@ -24,6 +24,7 @@ const (
 	errRedirectToDifferentDomain = "Only single redirect out of original root domain scope [%s] is allowed. Additional redirect from [%s] to [%s] is forbidden"
 	//errInfiniteRedirect          = "Reached the maximum number of allowed redirects while trying to redirect from [%s]: [%s]"
 	errRedirectSameDomain = "Error on redirect: [%s] is redirecting to the same page. Redirecting from [%s] to [%s]"
+	errRedirctToMainPage  = "Error on redirect for [%s]: [%s] redirected to [%s] which looks like a homepage"
 )
 
 // HTTP crawler settings
@@ -124,25 +125,25 @@ func (c *crawler) handleRedirect(req *Request, res *http.Response) (string, erro
 		}
 	}
 
-	// make sure redirects takes us to another Ads.txt file and not just to home page
-	// file doesn't necessarily need to be from a file system or called ads.xt
-	// assume when it is however /ads.txt it's correct
-	// fix later for ugly code
-
+	// Make sure redirects takes us to another Ads.txt file and not just to home page
+	// File doesn't necessarily need to be from a filesystem, so needed more checks for match.
+	// Assume when filename equals ads.txt it's coming from filesystem.
 	if !strings.HasSuffix(redirect, "/ads.txt") {
 		_, err := url.ParseRequestURI(redirect)
 		if err != nil {
-			return "", fmt.Errorf("hello", req.Domain, req.URL, redirect)
+			return "", fmt.Errorf(errRedirctToInvalidAdsTxt, req.Domain, req.URL, redirect)
 		}
 
 		u, err := url.Parse(redirect)
 		if err != nil || u.Scheme == "" || u.Host == "" {
-			return "", fmt.Errorf("hello", req.Domain, req.URL, redirect)
+			return "", fmt.Errorf(errRedirctToInvalidAdsTxt, req.Domain, req.URL, redirect)
 		}
-		log.Println("Checking a url")
-		log.Println(u)
 
-		//return "", fmt.Errorf(errRedirctToInvalidAdsTxt, req.Domain, req.URL, redirect)
+		if u.Scheme+"://"+u.Hostname() == redirect {
+			return "", fmt.Errorf(errRedirctToMainPage, req.Domain, req.URL, redirect)
+		}
+
+		return redirect, nil
 	}
 
 	return redirect, nil
