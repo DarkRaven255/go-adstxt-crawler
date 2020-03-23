@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -124,8 +125,24 @@ func (c *crawler) handleRedirect(req *Request, res *http.Response) (string, erro
 	}
 
 	// make sure redirects takes us to another Ads.txt file and not just to home page
+	// file doesn't necessarily need to be from a file system or called ads.xt
+	// assume when it is however /ads.txt it's correct
+	// fix later for ugly code
+
 	if !strings.HasSuffix(redirect, "/ads.txt") {
-		return "", fmt.Errorf(errRedirctToInvalidAdsTxt, req.Domain, req.URL, redirect)
+		_, err := url.ParseRequestURI(redirect)
+		if err != nil {
+			return "", fmt.Errorf("hello", req.Domain, req.URL, redirect)
+		}
+
+		u, err := url.Parse(redirect)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			return "", fmt.Errorf("hello", req.Domain, req.URL, redirect)
+		}
+		log.Println("Checking a url")
+		log.Println(u)
+
+		//return "", fmt.Errorf(errRedirctToInvalidAdsTxt, req.Domain, req.URL, redirect)
 	}
 
 	return redirect, nil
