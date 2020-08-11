@@ -3,13 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/ehulsbosch/go-adstxt-crawler"
+	"../../../go-adstxt-crawler"
 )
 
 func main() {
 	domains := []string{
 		"http://example.com",
 		"http://test.com",
+		"http://cnn.com",
 	}
 
 	requests := make([]*adstxt.Request, len(domains))
